@@ -1,0 +1,51 @@
+#----------------------------------------------------------
+# Initiate variables
+#  Create strings used to connected to the SQL Server
+#----------------------------------------------------------
+$server = "SQLEXPRESS" #Name of your server. Default name if you use SQL Server Express is SQLEXPRESS
+$database = "master" #Name of the database. Default is master
+$filename = "output" #Name of the CSV file that generates after running this script
+#----------------------------------------------------------
+# The Query
+#  Create a string that will contain the query that will be run.
+#  Erase the example between the double quotes and enter your own query
+#----------------------------------------------------------
+$query = "
+SELECT cost.F01 as UPC, F19 as cases,
+	   F196 as cCost, pos.F22 as size,
+ 	   pos.f255 as cname
+
+FROM COST_TAB as cost
+FULL JOIN OBJ_TAB as pos
+ON cost.f01 = pos.f01
+WHERE F27 = '1116'
+AND F90 = '1'
+"
+
+#----------------------------------------------------------
+# Establish connection to the database and run the query 
+# Returns result to DataSet
+#----------------------------------------------------------
+$connectionTemplate = "Data Source={0};User ID=sw;Password=relith;Initial Catalog={1};"
+$connectionString = [string]::Format($connectionTemplate, $server, $database)
+$connection = New-Object System.Data.SqlClient.SqlConnection
+$connection.ConnectionString = $connectionString
+
+$command = New-Object System.Data.SqlClient.SqlCommand
+$command.CommandText = $query
+$command.Connection = $connection
+
+$SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter
+$SqlAdapter.SelectCommand = $command
+$DataSet = New-Object System.Data.DataSet
+$SqlAdapter.Fill($DataSet)
+$connection.Close()
+
+#----------------------------------------------------------
+# Define export location and export DataSet to CSV file
+#----------------------------------------------------------
+$file = "D:\$filename.csv"
+$Dataset.Tables[0] | Export-Csv $file -encoding UTF8 -Force -NoTypeInformation
+
+#Uncomment code below to stop command prompt from closing after the script completes
+#Read-Host -Prompt "Press Enter to exit"
